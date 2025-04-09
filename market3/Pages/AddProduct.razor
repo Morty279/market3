@@ -1,0 +1,96 @@
+﻿@using Microsoft.AspNetCore.SignalR.Client
+@using market3.DataBase;
+@inject IJSRuntime IJSRuntime
+@inject HttpClient Http
+@page "/addproduct"
+<h3> Добавить Новый товар</h3>
+<EditForm Model="@newTovar" OnInvalidSubmit="@HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <p>
+        <label>
+
+            Название: <InputText @bind-Value="newTovar.Name" />
+
+        </label>
+    </p>
+
+    <p>
+        <label>
+
+            Описание: <InputText @bind-Value="newTovar.Description" />
+
+
+        </label>
+    </p>
+
+    <div>
+        <label>
+            Изображение:
+        </label>
+        <InputFile class="form-control" id="image" OnChange="@SingleUpload" @bind-Value="@newTovar.Image" accept=".jpg,.jpeg,.png,.gif" />
+    </div>
+
+    <div>
+        <label>
+
+            Категория:
+        </label>
+        <div>
+            <select @bind="newTovar.CategoryId">
+                <option value=0>--Select--</option>
+                <option value=1>Admin</option>
+                <option value=2>HR</option>
+            </select>
+        </div>
+
+    </div>
+
+    <p>
+        <label>
+
+            Цена: <InputNumber @bind-Value="newTovar.Price" />
+
+        </label>
+
+    </p>
+    <p>
+        <label>
+
+            Кол-во: <InputNumber @bind-Value="newTovar.Quantity" />
+
+        </label>
+    </p>
+
+
+    <button type="submit"> Добавить </button>
+</EditForm>
+@code {
+    private Tovar newTovar = new Tovar();
+    private HubConnection hubConnection;
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder().WithUrl("http://localhost:5122/producthub").Build();
+        await hubConnection.StartAsync();
+        hubConnection.On<Tovar>("ProductAdded", (tovar) =>
+    {
+        Console.WriteLine($"Товар добавлен: {tovar.Name}");
+    });
+    }
+    private async Task HandleValidSubmit()
+    {
+        await hubConnection.SendAsync("AddProduct", newTovar);
+        newTovar = new Tovar();
+    }
+    private async Task SingleUpload(InputFileChangeEventArgs e)
+    {
+        MemoryStream ms = new MemoryStream();
+        await e.File.OpenReadStream().CopyToAsync(ms);
+        var bytes = ms.ToArray();
+        newTovar.Image = bytes;
+    }
+    public void Dispose()
+    {
+        hubConnection.DisposeAsync();
+    }
+}

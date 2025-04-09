@@ -1,0 +1,39 @@
+﻿@using Microsoft.AspNetCore.SignalR.Client
+@using market3.DataBase;
+@inject NavigationManager NavigationManager;
+@page "/OneProduct/{Id}"
+<h3>О товаре</h3>
+
+<h3><img class="rounded-top" src="data:image;base64, @System.Convert.ToBase64String(@tovar.Image)" /></h3>
+<p>@tovar.Name</p>
+<p>@tovar.CategoryId</p>
+<p>Описание: @tovar.Description</p>
+<p>Цена: @tovar.Price</p>
+<p>Количество:@tovar.Quantity</p>
+<div class=" btn btn-primary" @onclick="@(()=>Navigate())"> Назад </div>
+
+@code {
+    [Parameter]
+    public string? Id { get; set; }
+    private Tovar? tovar;
+    private HubConnection? hubConnection;
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder().WithUrl("http://localhost:5122/producthub").Build();
+        await hubConnection.StartAsync();
+        hubConnection.On<Tovar>("ReceiveProduct", (productRecived) =>
+        {
+            tovar = productRecived;
+            
+        });
+        int.TryParse(Id, out int id);
+        await hubConnection.InvokeAsync("GetProductById", id);
+
+    }
+    private void Navigate()
+    {
+        NavigationManager.NavigateTo("/assortiment/");
+    }
+
+
+}
