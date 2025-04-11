@@ -1,7 +1,6 @@
 ﻿@using Microsoft.AspNetCore.SignalR.Client
 @using market3.DataBase;
 @inject IJSRuntime IJSRuntime
-@inject HttpClient Http
 @page "/addproduct"
 <h3> Добавить Новый товар</h3>
 <EditForm Model="@newTovar" OnInvalidSubmit="@HandleValidSubmit">
@@ -37,11 +36,13 @@
             Категория:
         </label>
         <div>
-            <select @bind="newTovar.CategoryId">
-                <option value=0>--Select--</option>
-                <option value=1>Admin</option>
-                <option value=2>HR</option>
-            </select>
+          <InputSelect @bind-Value="newTovar.CategoryId">
+              @foreach (var category in categories)
+              {
+                  <option value="@category.Id"> @category.Name</option>
+              }
+
+          </InputSelect>
         </div>
 
     </div>
@@ -66,6 +67,7 @@
     <button type="submit"> Добавить </button>
 </EditForm>
 @code {
+    private List<Category> categories = new List<Category>();
     private Tovar newTovar = new Tovar();
     private HubConnection hubConnection;
     protected override async Task OnInitializedAsync()

@@ -3,13 +3,15 @@
 @inject NavigationManager NavigationManager;
 @page "/OneProduct/{Id}"
 <h3>О товаре</h3>
-
-<h3><img class="rounded-top" src="data:image;base64, @System.Convert.ToBase64String(@tovar.Image)" /></h3>
+@if (tovar != null)
+{
+    <h3><img class="rounded-top" src="data:image;base64, @System.Convert.ToBase64String(@tovar.Image)" /></h3>
 <p>@tovar.Name</p>
 <p>@tovar.CategoryId</p>
 <p>Описание: @tovar.Description</p>
 <p>Цена: @tovar.Price</p>
 <p>Количество:@tovar.Quantity</p>
+}
 <div class=" btn btn-primary" @onclick="@(()=>Navigate())"> Назад </div>
 
 @code {
