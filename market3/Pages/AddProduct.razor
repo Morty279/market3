@@ -37,11 +37,10 @@
         </label>
         <div>
           <InputSelect @bind-Value="newTovar.CategoryId">
-              @foreach (var category in categories)
+              @foreach(var category in categories)
               {
-                  <option value="@category.Id"> @category.Name</option>
+                  <option value="@category.Id">@category.Name</option>
               }
-
           </InputSelect>
         </div>
 
@@ -69,19 +68,26 @@
 @code {
     private List<Category> categories = new List<Category>();
     private Tovar newTovar = new Tovar();
+    private List<int> selectedCategories = new List<int>();
     private HubConnection hubConnection;
     protected override async Task OnInitializedAsync()
     {
-        hubConnection = new HubConnectionBuilder().WithUrl("http://localhost:5122/producthub").Build();
-        await hubConnection.StartAsync();
-        hubConnection.On<Tovar>("ProductAdded", (tovar) =>
+        await LoadCategory();
+    }
+    private async Task LoadCategory()
     {
-        Console.WriteLine($"Товар добавлен: {tovar.Name}");
-    });
+        var hubConnection = new HubConnectionBuilder().WithUrl("http://localhost:5122/producthub").Build();
+        await hubConnection.StartAsync();
+        hubConnection.On<List<Category>>("ReceiveCategory", (categoryFromServer) =>
+        {
+            categories = categoryFromServer;
+            InvokeAsync(StateHasChanged);
+        });
+        await hubConnection.InvokeAsync("GetCategoriesAsync");
     }
     private async Task HandleValidSubmit()
     {
-        await hubConnection.SendAsync("AddProduct", newTovar);
+        
         newTovar = new Tovar();
     }
     private async Task SingleUpload(InputFileChangeEventArgs e)

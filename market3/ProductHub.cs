@@ -11,13 +11,20 @@ namespace market3
         public ProductHub(InternetMarketBalkaContext context)
         {
             _context = context;
+           
         }
-       public async Task AddProduct(Tovar tovar)
+        public async Task AddProduct(Tovar tovar)
         {
             _context.Tovars.Add(tovar);
-            await _context.SaveChangesAsync();
+            _context.SaveChangesAsync();
             await Clients.All.SendAsync("ProductAdded", tovar);
         }
+        public async Task GetCategoriesAsync()
+        {
+            var category = await _context.Categories.ToListAsync();
+                await Clients.Caller.SendAsync("ReceiveCategory", category);
+        }
+      
         public async Task Registr(string name, string password)
         {
             if (_context.Users.Any(u =>u.Name.ToLower()==name.ToLower()))
@@ -39,9 +46,10 @@ namespace market3
 
         public async Task GetProductById(int id)
         {
-            var product = await _context.Tovars.FirstOrDefaultAsync(s=>s.Id == id);
-            await Clients.Caller.SendAsync("ReceiveProduct", product);
+            var product = await _context.Tovars.Include(s=>s.Category).FirstOrDefaultAsync(s=>s.Id == id);
+            await Clients.Caller.SendAsync("ReceiveProduct", (TovarDTO)product);
         }
+       
 
     }
 }
