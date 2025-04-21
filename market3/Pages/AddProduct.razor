@@ -36,12 +36,12 @@
             Категория:
         </label>
         <div>
-          <InputSelect @bind-Value="newTovar.CategoryId">
-              @foreach(var category in categories)
-              {
-                  <option value="@category.Id">@category.Name</option>
-              }
-          </InputSelect>
+            <InputSelect @bind-Value="newTovar.CategoryId">
+                @foreach(var category in categories)
+                {
+                    <option value="@category.Id">@category.Name</option>
+                }
+            </InputSelect>
         </div>
 
     </div>
@@ -63,16 +63,17 @@
     </p>
 
 
-    <button type="submit"> Добавить </button>
+    <button type="submit" class="btn btn-primary"> Добавить </button>
 </EditForm>
 @code {
     private List<Category> categories = new List<Category>();
     private Tovar newTovar = new Tovar();
     private List<int> selectedCategories = new List<int>();
-    private HubConnection hubConnection;
+    private HubConnection? hubConnection;
     protected override async Task OnInitializedAsync()
     {
         await LoadCategory();
+
     }
     private async Task LoadCategory()
     {
@@ -87,8 +88,7 @@
     }
     private async Task HandleValidSubmit()
     {
-        
-        newTovar = new Tovar();
+        await hubConnection!.SendAsync("AddProduct", newTovar);
     }
     private async Task SingleUpload(InputFileChangeEventArgs e)
     {
@@ -99,6 +99,6 @@
     }
     public void Dispose()
     {
-        hubConnection.DisposeAsync();
+        hubConnection?.DisposeAsync();
     }
 }

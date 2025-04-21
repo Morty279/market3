@@ -8,9 +8,11 @@ namespace market3
     public class ProductHub : Hub
     {
         private readonly InternetMarketBalkaContext _context;
-        public ProductHub(InternetMarketBalkaContext context)
+        private readonly IHubContext<ProductHub> _hubContext;
+        public ProductHub(InternetMarketBalkaContext context, IHubContext<ProductHub> hubContext)
         {
             _context = context;
+            _hubContext = hubContext;
            
         }
         public async Task AddProduct(Tovar tovar)
@@ -25,17 +27,18 @@ namespace market3
                 await Clients.Caller.SendAsync("ReceiveCategory", category);
         }
       
-        public async Task Registr(string name, string password)
+        public async Task<bool> RegisterAsync(string name, string password)
         {
-            if (_context.Users.Any(u =>u.Name.ToLower()==name.ToLower()))
-            {
-                Clients.Caller.SendAsync("Ошибка регистрации", "Пользователь с таким именем уже существует.");
-                return;
-            }
-            var user = new User { Name = name, Password = password };
-            _context.Add(user);
+            string passwordHash = BCrypt.Net.BCrypt.HashPassword(password);
+            var user = new User { Name=name, Password=passwordHash};
+            _context.Users.Add(user);
             await _context.SaveChangesAsync();
-            Clients.Caller.SendAsync("Регистрация прошла успешна.");
+            await _hubContext.Clients.All.SendAsync("UserRegistered");
+                return true;
+        }
+        public async Task<User?>GetUserAsync(string name)
+        {
+            return await _context.Users.FirstOrDefaultAsync(u => u.Name == name);
         }
 
         public async Task GetProduct()
