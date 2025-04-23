@@ -1,4 +1,5 @@
-﻿using market3.DataBase;
+﻿using BCrypt.Net;
+using market3.DataBase;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,12 +9,9 @@ namespace market3
     public class ProductHub : Hub
     {
         private readonly InternetMarketBalkaContext _context;
-        private readonly IHubContext<ProductHub> _hubContext;
-        public ProductHub(InternetMarketBalkaContext context, IHubContext<ProductHub> hubContext)
+        public ProductHub(InternetMarketBalkaContext context)
         {
-            _context = context;
-            _hubContext = hubContext;
-           
+            _context = context;           
         }
         public async Task AddProduct(Tovar tovar)
         {
@@ -27,18 +25,25 @@ namespace market3
                 await Clients.Caller.SendAsync("ReceiveCategory", category);
         }
       
-        public async Task<bool> RegisterAsync(string name, string password)
+        public async Task<bool> Register(string name, string password,int roleid)
         {
             string passwordHash = BCrypt.Net.BCrypt.HashPassword(password);
-            var user = new User { Name=name, Password=passwordHash};
+            var user = new User { Name=name, RoleId=roleid,Password=passwordHash};
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
-            await _hubContext.Clients.All.SendAsync("UserRegistered");
+            await Clients.Caller.SendAsync("RegisterResult",true);
                 return true;
         }
-        public async Task<User?>GetUserAsync(string name)
+        public async Task<bool>Login(string name,string password)
         {
-            return await _context.Users.FirstOrDefaultAsync(u => u.Name == name);
+           var user = await _context.Users.FirstOrDefaultAsync(u =>u.Name == name);
+            if(user !=null )
+            {
+                await Clients.Caller.SendAsync("LoginResult", true);
+                return true;
+            }
+            await Clients.Caller.SendAsync("LoginResult", false);
+            return false;
         }
 
         public async Task GetProduct()
@@ -52,7 +57,11 @@ namespace market3
             var product = await _context.Tovars.Include(s=>s.Category).FirstOrDefaultAsync(s=>s.Id == id);
             await Clients.Caller.SendAsync("ReceiveProduct", (TovarDTO)product);
         }
-       
+       public async Task GetRole()
+        {
+            var role =await _context.Roles.ToListAsync();
+            await Clients.Caller.SendAsync("ReceiveRole", role);
+        }
 
     }
 }

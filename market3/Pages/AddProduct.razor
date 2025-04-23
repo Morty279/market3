@@ -3,7 +3,7 @@
 @inject IJSRuntime IJSRuntime
 @page "/addproduct"
 <h3> Добавить Новый товар</h3>
-<EditForm Model="@newTovar" OnInvalidSubmit="@HandleValidSubmit">
+<EditForm Model="@newTovar" OnValidSubmit="@HandleValidSubmit">
     <DataAnnotationsValidator />
     <ValidationSummary />
     <p>
