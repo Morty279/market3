@@ -1,0 +1,65 @@
+﻿@page "/Register"
+@using Microsoft.AspNetCore.SignalR.Client
+@using market3.DataBase
+@inject IJSRuntime JSRuntime;
+<h3>Регистрация</h3>
+<EditForm Model="newUser" OnValidSubmit="HandleRegister">
+    <DataAnnotationsValidator/>
+    <ValidationSummary/>
+    <p>
+        <div>
+            <label>Имя пользователя</label>
+            <InputText  @bind-Value="newUser.Name" />
+        </div>
+    </p>
+    <p>
+        <div>
+            <label>Кто ты на сайте</label>
+            <InputSelect @bind-Value="newUser.RoleId">
+                @foreach (var role in roles)
+                {
+                    <option value="@role.Id">@role.Name</option>
+                }
+            </InputSelect>
+        </div>
+    </p>
+    <p>
+        <div>
+            <label>Пароль</label>
+            <InputText type="password" @bind-value="newUser.Password" />
+        </div>
+    </p>
+
+
+    <button type="submit">Зарегестрироваться</button>
+</EditForm>
+@code {
+    private User newUser = new User();
+    private List<Role> roles = new List<Role>();
+    private HubConnection? hubConnection;
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRoles();
+    }
+    private async Task LoadRoles()
+    {
+        hubConnection = new HubConnectionBuilder().WithUrl("http://localhost:5122/producthub").Build();
+        await hubConnection.StartAsync();
+        hubConnection.On<List<Role>>("ReceiveRole", (roleFromServer)
+        =>
+        {
+
+            roles = roleFromServer;
+
+        });
+
+        await hubConnection.InvokeAsync("GetRole");
+    }
+    private async Task HandleRegister()
+    {
+        hubConnection = new HubConnectionBuilder().WithUrl("http://localhost:5122/producthub").Build();
+        await hubConnection.StartAsync();        
+        await hubConnection.SendAsync("Register", newUser.Name, newUser.Password, newUser.RoleId);  
+        
+    }
+}

@@ -77,6 +77,9 @@
     }
     private async Task LoadCategory()
     {
+        
+        
+        
         var hubConnection = new HubConnectionBuilder().WithUrl("http://localhost:5122/producthub").Build();
         await hubConnection.StartAsync();
         hubConnection.On<List<Category>>("ReceiveCategory", (categoryFromServer) =>
@@ -88,7 +91,8 @@
     }
     private async Task HandleValidSubmit()
     {
-        await hubConnection!.SendAsync("AddProduct", newTovar);
+        var hubConnection = new HubConnectionBuilder().WithUrl("http://localhost:5122/producthub").Build();
+        await hubConnection.SendAsync("AddProduct", newTovar);
     }
     private async Task SingleUpload(InputFileChangeEventArgs e)
     {
