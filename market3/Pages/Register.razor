@@ -59,7 +59,7 @@
     {
         hubConnection = new HubConnectionBuilder().WithUrl("http://localhost:5122/producthub").Build();
         await hubConnection.StartAsync();        
-        await hubConnection.SendAsync("Register", newUser.Name, newUser.Password, newUser.RoleId);  
+         await hubConnection.SendAsync("Register", newUser.Name, newUser.Password, newUser.RoleId);  
         
     }
 }

@@ -16,11 +16,12 @@ namespace market3
         {         
             _context = context;           
         }
-        public async Task AddProduct(Tovar tovar)
+        public async Task AddProduct(string name,string description, byte[] image, int categoryId, int price, int quantity)
         {
-            _context.Tovars.Add(tovar);
-            _context.SaveChangesAsync();
-            await Clients.All.SendAsync("ProductAdded", tovar);
+            var tovar = new Tovar { Name = name, Description = description, Image = image, CategoryId = categoryId, Price = price, Quantity = quantity };
+            await _context.Tovars.AddAsync(tovar);
+            await _context.SaveChangesAsync();
+            await Clients.All.SendAsync("ProductAdded");
         }
         public async Task GetCategoriesAsync()
         {
@@ -35,11 +36,15 @@ namespace market3
                 await Clients.Caller.SendAsync("RegisterError", "Пользователь с таким именем существует");
                 return;
             }
-            string passwordHash = HashPassword(password);
-            var user = new User { Name=name,Password=passwordHash,RoleId=roleid};
-            await _context.Users.AddAsync(user);
-            await _context.SaveChangesAsync();
-            await Clients.Caller.SendAsync("RegisterSuccess");
+            else
+            {
+                string passwordHash = HashPassword(password);
+                var user = new User { Name = name, Password = passwordHash, RoleId = roleid };
+                await _context.Users.AddAsync(user);
+                await _context.SaveChangesAsync();
+                await Clients.Caller.SendAsync("RegisterSuccess","Регистрация прошла успешна");
+            }
+            
         }
         public async Task Login(string name,string password)
         {
@@ -49,7 +54,11 @@ namespace market3
                 await Clients.Caller.SendAsync("LoginError", "Неверный логин или пароль");
                 return;
             }
-            await Clients.Caller.SendAsync("LoginSuccess");
+            else
+            {
+                await Clients.Caller.SendAsync("LoginSuccess");
+            }
+            
             
         }
 
@@ -69,6 +78,11 @@ namespace market3
             var role =await _context.Roles.ToListAsync();
             await Clients.Caller.SendAsync("ReceiveRole", role);
         }
+        public async Task GetUser()
+        {
+            var user = await _context.Users.ToListAsync();
+            await Clients.Caller.SendAsync("ReceiveUser", user);
+        }
         private string HashPassword(string password)
         {
             using (var sha256 = SHA256.Create())
@@ -77,11 +91,6 @@ namespace market3
                 return
                     Convert.ToBase64String(hashBytes);
             }
-        }
-        private bool VerifyPassword(string password,string hash)
-        {
-            string hashedPassword = HashPassword(password);
-            return hashedPassword== hash;
         }
     }
 }
