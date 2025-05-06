@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.SignalR.Client
 @using market3.DataBase
 @inject IJSRuntime JSRuntime;
+@inject NavigationManager NavigationManager;
 <h3>Регистрация</h3>
 <EditForm Model="newUser" OnValidSubmit="HandleRegister">
     <DataAnnotationsValidator/>
@@ -32,8 +33,23 @@
 
 
     <button type="submit">Зарегестрироваться</button>
+
 </EditForm>
+<Modal IsVisible="@showModalerror" ModalTitle="Ошибка">
+    <p>
+        Пользователь с таким именем существует
+    </p>
+
+</Modal>
+<Modal IsVisible="@showModalsuccess" ModalTitle="Успех">
+    <p>
+        Регистрация прошла успешна
+    </p>
+
+</Modal>
 @code {
+    private bool showModalerror = false;
+    private bool showModalsuccess = false;
     private User newUser = new User();
     private List<Role> roles = new List<Role>();
     private HubConnection? hubConnection;
@@ -52,14 +68,24 @@
             roles = roleFromServer;
 
         });
+hubConnection.On<string>("RegisterError", async (error)=>
+        {
+            showModalerror = true;
 
+        });
+        hubConnection.On<string>("RegisterSuccess", async (success) =>
+         {
+
+              showModalsuccess = true;
+             await Task.Delay(3000);
+             NavigationManager.NavigateTo("/");
+
+         });
         await hubConnection.InvokeAsync("GetRole");
     }
     private async Task HandleRegister()
-    {
-        hubConnection = new HubConnectionBuilder().WithUrl("http://localhost:5122/producthub").Build();
-        await hubConnection.StartAsync();        
-         await hubConnection.SendAsync("Register", newUser.Name, newUser.Password, newUser.RoleId);  
+    {      
+        await hubConnection.SendAsync("Register", newUser.Name, newUser.Password, newUser.RoleId);
         
     }
 }

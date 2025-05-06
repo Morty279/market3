@@ -1,9 +1,10 @@
-﻿using BCrypt.Net;
-using market3.DataBase;
+﻿using market3.DataBase;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using System.Text;
+
 
 
 namespace market3
@@ -43,6 +44,7 @@ namespace market3
                 await _context.Users.AddAsync(user);
                 await _context.SaveChangesAsync();
                 await Clients.Caller.SendAsync("RegisterSuccess","Регистрация прошла успешна");
+               
             }
             
         }
@@ -56,7 +58,7 @@ namespace market3
             }
             else
             {
-                await Clients.Caller.SendAsync("LoginSuccess");
+                await Clients.Caller.SendAsync("LoginSuccess" , "Успешный вход");
             }
             
             

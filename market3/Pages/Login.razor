@@ -1,5 +1,7 @@
 ﻿@using Microsoft.AspNetCore.SignalR.Client
 @using market3.DataBase
+@inject NavigationManager NavigationManager;
+@page "/Login"
 <h3>Авторизация</h3>
 <EditForm Model="user" OnValidSubmit="HandleLogin">
     <DataAnnotationsValidator />
@@ -11,7 +13,7 @@
         </div>
     </p>
     <p>
-       
+
     </p>
     <p>
         <div>
@@ -23,16 +25,44 @@
 
     <button type="submit">Войти</button>
 </EditForm>
+<Modal IsVisible="@showModalerror" ModalTitle="Ошибка">
+    <p>
+        Пользователь не найден
+    </p>
+
+</Modal>
+<Modal IsVisible="@showModalsuccess" ModalTitle="Успех">
+    <p>
+        Регистрация прошла успешна
+    </p>
+
+</Modal>
 @code {
+    private bool showModalerror = false;
+    private bool showModalsuccess = false;
     private User user = new User();
     private HubConnection? hubConnection;
-    
-    
+
+
     private async Task HandleLogin()
     {
         hubConnection = new HubConnectionBuilder().WithUrl("http://localhost:5122/producthub").Build();
         await hubConnection.StartAsync();
         await hubConnection.SendAsync("Login", user.Name,user.Password);
+        hubConnection.On<string>("LoginError", (error) =>
+       {
 
+           showModalerror = true;
+
+       });
+        hubConnection.On<string>("LoginSuccess", async (success) =>
+         {
+
+             showModalsuccess = true;
+             await Task.Delay(3000);
+             NavigationManager.NavigateTo("/");
+
+         });
+       
     }
 }
