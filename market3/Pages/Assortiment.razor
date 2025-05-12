@@ -5,48 +5,73 @@
 
 
 <h3>Товары</h3>
+<div class="row">
+    @foreach (var tovar in tovars)
+    {
 
-@foreach (var tovar in tovars)
-{
-    <div class="card mb-4" Style="width:18rem;">
-        <img class="rounded-top" src="data:image;base64, @System.Convert.ToBase64String(@tovar.Image)" />
-        <div class="card-body">
-            <div class="card-title">@tovar.Name</div>
-            <div class="card-subtitle">Цена: <p>@tovar.Price</p></div>
-            <div class="card-text">Количество:<p>@tovar.Quantity</p></div>
-            <div class=" btn btn-primary" @onclick="@(()=>Navigate(tovar.Id))"> Подробнее </div>
+        <div class="col-md-3">
+            <div class="card mb-2">
+                <img class="rounded-top" src="data:image;base64, @System.Convert.ToBase64String(@tovar.Image)"  />
+                <div class="card-body">
+                    <div class="card-title">@tovar.Name</div>
+                    <div class="card-subtitle">Цена: <p>@tovar.Price</p></div>
+                    <div class="card-text">Количество:<p>@tovar.Quantity</p></div>
+                    <div class=" btn btn-primary" @onclick="@(()=>Navigate(tovar.Id))"> Подробнее </div>
+                    <div class="btn btn-primary" @onclick="@(()=>AddToCart(tovar.Id, 1))">Добавить в корзину</div>
+                </div>
+            </div>
         </div>
-    </div>
-}
-@code
-{
-    private List<Tovar> tovars = new List<Tovar>();
+        <Modal IsVisible="@showModalsuccess" ModalTitle="Успех">
+            <p>
+                Товар добавлен в корзину
+            </p>
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadTovars();
+        </Modal>
     }
-    private async Task LoadTovars()
+    </div>
+    @code
     {
-        var hubConnection = new HubConnectionBuilder().WithUrl("http://localhost:5122/producthub").Build();
-        await hubConnection.StartAsync();        
-        hubConnection.On<List<Tovar>>("ReceiveProducts", (productFromServer)
-        =>
+        private bool showModalsuccess = false;
+        private TovarInZakaz tovarInZakazs = new TovarInZakaz();
+        private List<Tovar> tovars = new List<Tovar>();
+        private HubConnection? hubConnection;
+        protected override async Task OnInitializedAsync()
+        {
+            await LoadTovars();
+            
+        }
+        private async Task LoadTovars()
+        {
+            hubConnection = new HubConnectionBuilder().WithUrl("http://localhost:5122/producthub").Build();
+            await hubConnection.StartAsync();
+            hubConnection.On<List<Tovar>>("ReceiveProducts", (productFromServer)
+            =>
+            {
+
+                tovars = productFromServer;
+
+            });
+
+            await hubConnection.InvokeAsync("GetProduct");
+
+
+
+        }
+        private async Task AddToCart(int TovarId, int Quantity)
         {
             
-            tovars = productFromServer;
-            
-        });
 
-        await hubConnection.InvokeAsync("GetProduct");
+        await hubConnection.SendAsync("AddCart", TovarId, Quantity);
+        hubConnection.On<TovarInZakaz>("CartUpdate", (cartfromserver) =>
+            {
+                tovarInZakazs = cartfromserver;
+                showModalsuccess = true;
+            });
+        }
+        private void Navigate(int id)
+        {
+            NavigationManager.NavigateTo("/OneProduct/" + id);
+        }
 
-        
 
     }
-    private void Navigate(int id)
-    {
-        NavigationManager.NavigateTo("/OneProduct/" + id);
-    }
-
-
-}

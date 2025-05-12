@@ -85,6 +85,13 @@ namespace market3
             var user = await _context.Users.ToListAsync();
             await Clients.Caller.SendAsync("ReceiveUser", user);
         }
+        public async Task AddCart(int TovarId, int Quantity)
+        {
+            var TovarInZakaz = new TovarInZakaz { TovarId = TovarId, Quantity = Quantity };
+            _context.TovarInZakazs.Add(TovarInZakaz);
+            await _context.SaveChangesAsync();
+            await Clients.All.SendAsync("CartUpdate", TovarInZakaz);
+        }
         private string HashPassword(string password)
         {
             using (var sha256 = SHA256.Create())

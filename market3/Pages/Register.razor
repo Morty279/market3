@@ -68,6 +68,7 @@
             roles = roleFromServer;
 
         });
+        await hubConnection.InvokeAsync("GetRole");
 hubConnection.On<string>("RegisterError", async (error)=>
         {
             showModalerror = true;
@@ -81,7 +82,7 @@ hubConnection.On<string>("RegisterError", async (error)=>
              NavigationManager.NavigateTo("/");
 
          });
-        await hubConnection.InvokeAsync("GetRole");
+        
     }
     private async Task HandleRegister()
     {      
