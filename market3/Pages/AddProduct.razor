@@ -94,7 +94,7 @@
         hubConnection = new HubConnectionBuilder().WithUrl("http://localhost:5122/producthub").Build();
         await hubConnection.StartAsync();
         await hubConnection.SendAsync("AddProduct", newTovar.Name, newTovar.Description, newTovar.Image, newTovar.CategoryId, newTovar.Price, newTovar.Quantity);
-    }
+    } 
     private async Task SingleUpload(InputFileChangeEventArgs e)
     {
         MemoryStream ms = new MemoryStream();

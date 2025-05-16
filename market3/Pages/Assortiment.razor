@@ -6,6 +6,15 @@
 
 <h3>Товары</h3>
 <div class="row">
+    @if (tovars == null)
+    {
+        <p><em>Загрузка...</em></p>
+    }
+    else if (tovars.Count == 0)
+    {
+        <p>Товаров нет</p>
+    }
+    else
     @foreach (var tovar in tovars)
     {
 
@@ -17,7 +26,7 @@
                     <div class="card-subtitle">Цена: <p>@tovar.Price</p></div>
                     <div class="card-text">Количество:<p>@tovar.Quantity</p></div>
                     <div class=" btn btn-primary" @onclick="@(()=>Navigate(tovar.Id))"> Подробнее </div>
-                    <div class="btn btn-primary" @onclick="@(()=>AddToCart(tovar.Id, 1))">Добавить в корзину</div>
+                    <div class="btn btn-primary" @onclick="@(()=>AddToCart(tovar.Id, 1,tovar.Price))">Добавить в корзину</div>
                 </div>
             </div>
         </div>
@@ -57,11 +66,11 @@
 
 
         }
-        private async Task AddToCart(int TovarId, int Quantity)
+        private async Task AddToCart(int TovarId, int Quantity, decimal? Price)
         {
             
 
-        await hubConnection.SendAsync("AddCart", TovarId, Quantity);
+        await hubConnection.SendAsync("AddCart", TovarId, Quantity, Price);
         hubConnection.On<TovarInZakaz>("CartUpdate", (cartfromserver) =>
             {
                 tovarInZakazs = cartfromserver;
@@ -72,6 +81,12 @@
         {
             NavigationManager.NavigateTo("/OneProduct/" + id);
         }
-        l;l;gjfg
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
 
     }

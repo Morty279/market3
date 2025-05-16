@@ -1,5 +1,108 @@
-﻿<h3>Cart</h3>
+﻿@using Microsoft.AspNetCore.SignalR
+@using Microsoft.AspNetCore.SignalR.Client
+@using market3.DataBase
+@page "/Cart"
+<h3>Корзина</h3>
 
+@if (tovarInZakazs == null)
+{
+    <p><em>Загрузка...</em></p>
+}
+else if (tovarInZakazs.Count==0)
+{
+    <p>Корзина пуста</p>
+}
+else 
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Название</th>
+                <th>Кол-во</th>
+                <th>Цена</th>
+                <th>Итого</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var product in tovarInZakazs)
+            {
+                <tr>
+                    <td>@product.Tovar.Name</td>
+                    <td> <input type="number" class="from-control" value="@product.Quantity" min="1" @onchange="async (e) => await UpdateQuantity(product.Id,int.Parse(e.Value.ToString()))"/></td>
+                    <td>@product.Price?.ToString("C")</td>
+                    <td>@((product.Price * product.Quantity)?.ToString("C"))</td>
+                    <td> <button class="btn btn-danger" @onclick="async ()=> await RemoveTovar(product.Id)">Удалить</button></td>
+                </tr>
+            }
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="3" class="text-right"><strong>Итоговая стоимость:</strong></td>
+                <td><strong>@totalprice?.ToString("C")</strong></td>
+            </tr>
+        </tfoot>
+    </table>
+}
 @code {
+    private List<TovarInZakaz> tovarInZakazs = new List<TovarInZakaz>();
+    private decimal? totalprice = 0;
+    private HubConnection? hubConnection;
 
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder().WithUrl("http://localhost:5122/producthub").Build();
+
+        hubConnection.On("CartUpdate", async () =>
+        {
+            await LoadCartTovar();
+            StateHasChanged();
+        });
+
+        await hubConnection.StartAsync();
+        await LoadCartTovar();
+    }
+    private async Task LoadCartTovar()
+    {
+        hubConnection.On<List<TovarInZakaz>>("ReciveCart", (tovarinzakazfromserver) =>
+        {
+            tovarInZakazs = tovarinzakazfromserver;
+           
+        });
+        await hubConnection.InvokeAsync("GetCartTovar");
+        CalculateTotalPrice();
+    }
+    private async Task UpdateQuantity(int TovarId, int newQuantity)
+    {
+        if (newQuantity > 0)
+        {
+            await hubConnection.InvokeAsync("UpdateQuantity", TovarId, newQuantity);
+            
+            StateHasChanged();
+        }
+    }
+    private async Task RemoveTovar(int TovarId)
+    {
+        await hubConnection.InvokeAsync("DeleteCart", TovarId);
+        StateHasChanged();
+    }
+    private void CalculateTotalPrice()
+    {
+        totalprice = 0;
+        if (tovarInZakazs !=null)
+        {
+            foreach (var product in tovarInZakazs)
+            {
+                totalprice += product.Price * product.Quantity;
+            }
+            StateHasChanged();
+        }
+    }
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
 }

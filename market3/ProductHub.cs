@@ -85,12 +85,38 @@ namespace market3
             var user = await _context.Users.ToListAsync();
             await Clients.Caller.SendAsync("ReceiveUser", user);
         }
-        public async Task AddCart(int TovarId, int Quantity)
+        public async Task AddCart(int TovarId, int Quantity,decimal Price)
         {
-            var TovarInZakaz = new TovarInZakaz { TovarId = TovarId, Quantity = Quantity };
+            var TovarInZakaz = new TovarInZakaz { TovarId = TovarId, Quantity = Quantity, Price = Price };
             _context.TovarInZakazs.Add(TovarInZakaz);
             await _context.SaveChangesAsync();
             await Clients.All.SendAsync("CartUpdate", TovarInZakaz);
+        }
+        public async Task DeleteCart(int TovarId)
+        {
+            var CartTovar = await _context.TovarInZakazs.FindAsync(TovarId);
+            if (CartTovar != null)
+            {
+                _context.TovarInZakazs.Remove(CartTovar);
+                await _context.SaveChangesAsync();
+                await Clients.All.SendAsync("CartUpdate");
+            }
+        }
+        public async Task UpdateQuantity(int TovarId, int newQuantity)
+        {
+            var cartTovar = await _context.TovarInZakazs.FindAsync(TovarId);
+            if (cartTovar != null)
+            {
+                cartTovar.Quantity = newQuantity;
+                await _context.SaveChangesAsync();
+                await Clients.All.SendAsync("CartUpdate");
+                
+            }
+        }
+        public async Task GetCartTovar()
+        {
+            var cart = await _context.TovarInZakazs.Include(s=>s.Tovar).ToListAsync();
+            await Clients.Caller.SendAsync("ReciveCart",cart);
         }
         private string HashPassword(string password)
         {

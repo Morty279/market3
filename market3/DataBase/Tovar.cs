@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace market3.DataBase;
 
@@ -20,6 +21,7 @@ public partial class Tovar
     public int? Quantity { get; set; }
 
     public virtual Category? Category { get; set; }
+    [JsonIgnore]
 
     public virtual ICollection<TovarInZakaz> TovarInZakazs { get; } = new List<TovarInZakaz>();
 }
