@@ -6,6 +6,20 @@
 
 <h3>Товары</h3>
 <div class="row">
+    <input type="text" @bind="searchTerm" @bind:event="oninput" @onkeyup="StartSearch" placeholder="Введите запрос..."/>
+    @if (searchResults !=null)
+    {
+        <ul>
+            @foreach (var tovar in searchResults)
+            {
+                <li>@tovar.Name - @tovar.Price - @tovar.Description</li>
+            }
+        </ul>
+    }
+    else
+    {
+        <p>Начните ввод для поиска...</p>
+    }
     @if (tovars == null)
     {
         <p><em>Загрузка...</em></p>
@@ -15,72 +29,104 @@
         <p>Товаров нет</p>
     }
     else
-    @foreach (var tovar in tovars)
-    {
+        @foreach (var tovar in tovars)
+        {
 
-        <div class="col-md-3">
-            <div class="card mb-2">
-                <img class="rounded-top" src="data:image;base64, @System.Convert.ToBase64String(@tovar.Image)"  />
-                <div class="card-body">
-                    <div class="card-title">@tovar.Name</div>
-                    <div class="card-subtitle">Цена: <p>@tovar.Price</p></div>
-                    <div class="card-text">Количество:<p>@tovar.Quantity</p></div>
-                    <div class=" btn btn-primary" @onclick="@(()=>Navigate(tovar.Id))"> Подробнее </div>
-                    <div class="btn btn-primary" @onclick="@(()=>AddToCart(tovar.Id, 1,tovar.Price))">Добавить в корзину</div>
+            <div class="col-md-3">
+                <div class="card mb-2">
+                    <img class="rounded-top" src="data:image;base64, @System.Convert.ToBase64String(@tovar.Image)"  />
+                    <div class="card-body">
+                        <div class="card-title">@tovar.Name</div>
+                        <div class="card-subtitle">Цена: <p>@tovar.Price</p></div>
+                        <div class="card-text">Количество:<p>@tovar.Quantity</p></div>
+                        <div class=" btn btn-primary" @onclick="@(()=>Navigate(tovar.Id))"> Подробнее </div>
+                        <div class="btn btn-primary" @onclick="@(()=>AddToCart(tovar.Id, 1,tovar.Price))">Добавить в корзину</div>
+                    </div>
                 </div>
             </div>
-        </div>
-        <Modal IsVisible="@showModalsuccess" ModalTitle="Успех">
-            <p>
-                Товар добавлен в корзину
-            </p>
+            <Modal IsVisible="@showModalsuccess" ModalTitle="Успех">
+                <p>
+                    Товар добавлен в корзину
+                </p>
 
-        </Modal>
-    }
-    </div>
-    @code
+            </Modal>
+            <Modal IsVisible="@showModalerror" ModalTitle="Ошибка">
+                <p>
+                    Товар уже в корзине
+                </p>
+
+            </Modal>
+
+        }
+</div>
+@code
+{
+    private string searchTerm = "";
+    private List<Tovar> searchResults;
+    private bool showModalsuccess = false;
+    private bool showModalerror = false;
+    private TovarInZakaz tovarInZakazs = new TovarInZakaz();
+    private List<Tovar> tovars = new List<Tovar>();
+    private HubConnection? hubConnection;
+    protected override async Task OnInitializedAsync()
     {
-        private bool showModalsuccess = false;
-        private TovarInZakaz tovarInZakazs = new TovarInZakaz();
-        private List<Tovar> tovars = new List<Tovar>();
-        private HubConnection? hubConnection;
-        protected override async Task OnInitializedAsync()
+        await LoadTovars();
+
+    }
+
+    private async Task LoadTovars()
+    {
+        hubConnection = new HubConnectionBuilder().WithUrl("http://localhost:5122/producthub").Build();
+        await hubConnection.StartAsync();
+        hubConnection.On<List<Tovar>>("ReceiveProducts", (productFromServer)
+        =>
         {
-            await LoadTovars();
-            
-        }
-        private async Task LoadTovars()
-        {
-            hubConnection = new HubConnectionBuilder().WithUrl("http://localhost:5122/producthub").Build();
-            await hubConnection.StartAsync();
-            hubConnection.On<List<Tovar>>("ReceiveProducts", (productFromServer)
-            =>
+
+            tovars = productFromServer;
+
+        });
+
+        await hubConnection.InvokeAsync("GetProduct");
+        hubConnection.On<string>("CartDob", async (success) =>
+       {
+           showModalerror = true;
+       });
+        hubConnection.On<TovarInZakaz>("CartAdd", (cartfromserver) =>
             {
-
-                tovars = productFromServer;
-
+                tovarInZakazs = cartfromserver;
+                showModalsuccess = true;
             });
+        hubConnection.On<List<Tovar>>("ReciveSearchResults", (result) =>
+        {
+            searchResults = result;
+            
+        });
 
-            await hubConnection.InvokeAsync("GetProduct");
-
-
-
+    }
+    public async Task StartSearch()
+    {
+        if (hubConnection.State == HubConnectionState.Connected)
+        {
+            await hubConnection.InvokeAsync("SearchTovars", searchTerm);
         }
+        else 
+        {
+            Console.WriteLine("SignalR connection is not active.");
+        }
+    }
         private async Task AddToCart(int TovarId, int Quantity, decimal? Price)
         {
             
 
         await hubConnection.SendAsync("AddCart", TovarId, Quantity, Price);
-        hubConnection.On<TovarInZakaz>("CartUpdate", (cartfromserver) =>
-            {
-                tovarInZakazs = cartfromserver;
-                showModalsuccess = true;
-            });
+       
         }
+        
         private void Navigate(int id)
         {
             NavigationManager.NavigateTo("/OneProduct/" + id);
         }
+        public bool IsConnected => hubConnection?.State == HubConnectionState.Connected;
     public async ValueTask DisposeAsync()
     {
         if (hubConnection is not null)

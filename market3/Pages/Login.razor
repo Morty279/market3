@@ -1,6 +1,7 @@
 ﻿@using Microsoft.AspNetCore.SignalR.Client
 @using market3.DataBase
-@inject NavigationManager NavigationManager;
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
 @page "/Login"
 <h3>Авторизация</h3>
 <EditForm Model="user" OnValidSubmit="HandleLogin">
@@ -27,7 +28,7 @@
 </EditForm>
 <Modal IsVisible="@showModalerror" ModalTitle="Ошибка">
     <p>
-        Пользователь не найден
+        Неверный логин или пароль
     </p>
 
 </Modal>
@@ -57,12 +58,12 @@
        });
         hubConnection.On<string>("LoginSuccess", async (success) =>
          {
-
+             await JSRuntime.InvokeVoidAsync("localStorage.setItem", "name", user.Name);
              showModalsuccess = true;
              await Task.Delay(3000);
              NavigationManager.NavigateTo("/");
 
          });
-       
+      
     }
 }

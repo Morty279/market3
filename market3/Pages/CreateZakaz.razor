@@ -1,0 +1,44 @@
+﻿<h3>Заказ</h3>
+@page "/Zakaz"
+@using Microsoft.AspNetCore.SignalR.Client
+@using market3.DataBase
+
+<EditForm Model="@zakaz" OnValidSubmit="@HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <p>
+        <label>
+            Дата:<InputDate @bind-Value ="zakaz.OrderDate"/>
+        </label>
+    </p>
+    <p>
+        <label>
+            Итого: 
+        </label>
+    </p>
+    <p>
+        <label>
+            Адрес:<InputText @bind-Value="zakaz.Address"/>
+        </label>
+    </p>
+</EditForm>
+@code {
+    int[] idsI;
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string ids{
+        set
+        {
+            string val = value;
+             idsI = val.Split(',').Select(s => int.Parse(s)).ToArray();
+
+        }
+    }
+
+    private Zakaz zakaz = new Zakaz();
+    private HubConnection? hubConnection;
+    private async Task HandleValidSubmit()
+    {
+
+    }
+}

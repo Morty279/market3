@@ -1,0 +1,14 @@
+﻿@inject ProductHub ProductHub
+@inject NavigationManager NavigationManager
+@page "/logout"
+<h3>Выход</h3>
+<p>Вы действительно хотите выйти с аккаунта?</p>
+<button class="btn btn-danger" ></button>
+@code {
+    private async Task HandleLogout()
+    {
+        await ProductHub.LogoutAsync();
+        NavigationManager.NavigateTo("/");
+
+    }
+}

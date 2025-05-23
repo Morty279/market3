@@ -23,7 +23,7 @@ public partial class Tovar
     public virtual Category? Category { get; set; }
     [JsonIgnore]
 
-    public virtual ICollection<TovarInZakaz> TovarInZakazs { get; } = new List<TovarInZakaz>();
+    public virtual ICollection<TovarInZakaz> TovarInZakazs { get; } =new List<TovarInZakaz>();
 }
 
 public class TovarDTO

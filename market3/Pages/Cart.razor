@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.SignalR.Client
 @using market3.DataBase
 @page "/Cart"
+@inject NavigationManager NavigationManager;
 <h3>Корзина</h3>
 
 @if (tovarInZakazs == null)
@@ -43,10 +44,12 @@ else
             </tr>
         </tfoot>
     </table>
+    <button class="btn btn-primary" @onclick="@(()=>CreateZakaz())">Офромить заказ</button>
 }
 @code {
+    private bool showModalFailed = false;
     private List<TovarInZakaz> tovarInZakazs = new List<TovarInZakaz>();
-    private decimal? totalprice = 0;
+    public decimal? totalprice = 0;
     private HubConnection? hubConnection;
 
     protected override async Task OnInitializedAsync()
@@ -97,6 +100,11 @@ else
             }
             StateHasChanged();
         }
+    }
+    public void CreateZakaz()
+    {
+      
+            NavigationManager.NavigateTo("/Zakaz?ids="+ string.Join(",", tovarInZakazs.Select(s=>s.Id)));
     }
     public async ValueTask DisposeAsync()
     {

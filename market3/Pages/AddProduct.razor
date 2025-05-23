@@ -78,7 +78,7 @@
     private async Task LoadCategory()
     {
 
-
+        
 
         hubConnection = new HubConnectionBuilder().WithUrl("http://localhost:5122/producthub").Build();
         await hubConnection.StartAsync();

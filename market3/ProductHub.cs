@@ -1,7 +1,10 @@
 ﻿using market3.DataBase;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using System.Net;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -11,12 +14,31 @@ namespace market3
 {
     public class ProductHub : Hub
     {
+        static Dictionary<string, HubCallerContext> clients = new();
       
         private readonly InternetMarketBalkaContext _context;
-        public ProductHub(InternetMarketBalkaContext context)
+        private readonly IHttpContextAccessor _contextAccessor;
+        public ProductHub(InternetMarketBalkaContext context, IHttpContextAccessor contextAccessor)
         {         
-            _context = context;           
+            _context = context;
+            _contextAccessor = contextAccessor;
         }
+
+        public override Task OnConnectedAsync()
+        {
+            var feature = Context.Features.Get<IHttpConnectionFeature>();
+            var address = feature.RemoteIpAddress.ToString();
+            if (clients.ContainsKey(address))
+            {
+                clients[address].Abort();
+                clients.Remove(address);
+            }
+            clients.Add(address, Context);
+
+
+            return base.OnConnectedAsync();
+        }
+
         public async Task AddProduct(string name,string description, byte[] image, int categoryId, int price, int quantity)
         {
             var tovar = new Tovar { Name = name, Description = description, Image = image, CategoryId = categoryId, Price = price, Quantity = quantity };
@@ -50,10 +72,15 @@ namespace market3
         }
         public async Task Login(string name,string password)
         {
-           var user = await _context.Users.FirstOrDefaultAsync(u =>u.Name == name);
-            if(user ==null )
+           var user = await _context.Users.FirstOrDefaultAsync(u =>u.Name==name);
+            if(user ==null)
             {
-                await Clients.Caller.SendAsync("LoginError", "Неверный логин или пароль");
+                await Clients.Caller.SendAsync("LoginError", "Неверный логин или пароль ");
+                return;
+            }
+            if (!VerifyPasswordHash(password, user.Password))
+            {
+                await Clients.Caller.SendAsync("LoginError", "Неверный логин или пароль ");
                 return;
             }
             else
@@ -85,12 +112,20 @@ namespace market3
             var user = await _context.Users.ToListAsync();
             await Clients.Caller.SendAsync("ReceiveUser", user);
         }
-        public async Task AddCart(int TovarId, int Quantity,decimal Price)
+        public async Task AddCart(int TovarId, int Quantity, decimal Price)
         {
             var TovarInZakaz = new TovarInZakaz { TovarId = TovarId, Quantity = Quantity, Price = Price };
-            _context.TovarInZakazs.Add(TovarInZakaz);
-            await _context.SaveChangesAsync();
-            await Clients.All.SendAsync("CartUpdate", TovarInZakaz);
+            var exictingTovar = await _context.TovarInZakazs.FirstOrDefaultAsync(x => x.TovarId == TovarId);
+            if (exictingTovar != null)
+            {
+                await Clients.All.SendAsync("CartDob", "Товар добавлен");
+            }
+            else
+            {
+                _context.TovarInZakazs.Add(TovarInZakaz);
+                await _context.SaveChangesAsync();
+                await Clients.Caller.SendAsync("CartAdd", TovarInZakaz);
+            }
         }
         public async Task DeleteCart(int TovarId)
         {
@@ -118,6 +153,25 @@ namespace market3
             var cart = await _context.TovarInZakazs.Include(s=>s.Tovar).ToListAsync();
             await Clients.Caller.SendAsync("ReciveCart",cart);
         }
+        public async Task SearchTovars(string searchTerm)
+        {
+            if (string.IsNullOrEmpty(searchTerm))
+            {
+                await Clients.Caller.SendAsync("ReciveSearchResults", new List<Tovar>());
+                return;
+            }
+            var results = await _context.Tovars.Where(p => p.Name.Contains(searchTerm) || p.Description.Contains(searchTerm)).ToListAsync();
+            await Clients.Caller.SendAsync("ReciveSearchResults", results);
+        }
+        public async Task LogoutAsync()
+        {
+            _contextAccessor.HttpContext.Session.Clear();
+            if (_contextAccessor.HttpContext.Items.ContainsKey("CurrentUser"))
+            {
+                _contextAccessor.HttpContext.Items.Remove("CurrentUser");
+            }
+        }
+        
         private string HashPassword(string password)
         {
             using (var sha256 = SHA256.Create())
@@ -126,6 +180,11 @@ namespace market3
                 return
                     Convert.ToBase64String(hashBytes);
             }
+        }
+        private bool VerifyPasswordHash(string password, string storedHash)
+        {
+            string newHash = HashPassword(password);
+            return string.Equals(newHash, storedHash, StringComparison.Ordinal);
         }
     }
 }
