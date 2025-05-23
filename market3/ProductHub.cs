@@ -17,11 +17,10 @@ namespace market3
         static Dictionary<string, HubCallerContext> clients = new();
       
         private readonly InternetMarketBalkaContext _context;
-        private readonly IHttpContextAccessor _contextAccessor;
-        public ProductHub(InternetMarketBalkaContext context, IHttpContextAccessor contextAccessor)
+        public ProductHub(InternetMarketBalkaContext context)
         {         
             _context = context;
-            _contextAccessor = contextAccessor;
+          
         }
 
         public override Task OnConnectedAsync()
@@ -162,14 +161,6 @@ namespace market3
             }
             var results = await _context.Tovars.Where(p => p.Name.Contains(searchTerm) || p.Description.Contains(searchTerm)).ToListAsync();
             await Clients.Caller.SendAsync("ReciveSearchResults", results);
-        }
-        public async Task LogoutAsync()
-        {
-            _contextAccessor.HttpContext.Session.Clear();
-            if (_contextAccessor.HttpContext.Items.ContainsKey("CurrentUser"))
-            {
-                _contextAccessor.HttpContext.Items.Remove("CurrentUser");
-            }
         }
         
         private string HashPassword(string password)
