@@ -41,9 +41,14 @@ namespace market3
         public async Task AddProduct(string name,string description, byte[] image, int categoryId, int price, int quantity)
         {
             var tovar = new Tovar { Name = name, Description = description, Image = image, CategoryId = categoryId, Price = price, Quantity = quantity };
+            if (await _context.Tovars.AnyAsync(n => n.Name == name))
+            {
+                await Clients.All.SendAsync("AddError", "Такой товар уже есть");
+                return;
+            }
             await _context.Tovars.AddAsync(tovar);
             await _context.SaveChangesAsync();
-            await Clients.All.SendAsync("ProductAdded");
+            await Clients.All.SendAsync("ProductAdded" ,"Товар добавлен");
         }
         public async Task GetCategoriesAsync()
         {

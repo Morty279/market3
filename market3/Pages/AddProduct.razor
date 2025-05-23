@@ -1,5 +1,6 @@
 ﻿@using Microsoft.AspNetCore.SignalR.Client
 @using market3.DataBase;
+@inject NavigationManager NavigationManager
 @inject IJSRuntime IJSRuntime
 @page "/addproduct"
 <h3> Добавить Новый товар</h3>
@@ -64,8 +65,23 @@
 
 
     <button type="submit" class="btn btn-primary"> Добавить </button>
+    <button class="btn btn-danger" @onclick="Exit">Выйти</button>
 </EditForm>
+<Modal IsVisible="@showModalsuccess" ModalTitle="Успех">
+    <p>
+        Товар добавлен
+    </p>
+
+</Modal>
+<Modal IsVisible="@showModalerror" ModalTitle="Ошибка">
+    <p>
+        Такой товар уже есть
+    </p>
+
+</Modal>
 @code {
+    private bool showModalsuccess = false;
+    private bool showModalerror = false;
     private List<Category> categories = new List<Category>();
     private Tovar newTovar = new Tovar();
     private List<int> selectedCategories = new List<int>();
@@ -78,7 +94,7 @@
     private async Task LoadCategory()
     {
 
-        
+
 
         hubConnection = new HubConnectionBuilder().WithUrl("http://localhost:5122/producthub").Build();
         await hubConnection.StartAsync();
@@ -88,19 +104,38 @@
             InvokeAsync(StateHasChanged);
         });
         await hubConnection.InvokeAsync("GetCategoriesAsync");
+   
     }
     private async Task HandleValidSubmit()
     {
         hubConnection = new HubConnectionBuilder().WithUrl("http://localhost:5122/producthub").Build();
         await hubConnection.StartAsync();
         await hubConnection.SendAsync("AddProduct", newTovar.Name, newTovar.Description, newTovar.Image, newTovar.CategoryId, newTovar.Price, newTovar.Quantity);
+        hubConnection.On<string>("ProductAdded", async (success) =>
+      {
+
+      showModalsuccess = true;
+
+
+      });
+        hubConnection.On<string>("AddError", async (error) =>
+      {
+
+          showModalerror = true;
+
+      });
     } 
+
     private async Task SingleUpload(InputFileChangeEventArgs e)
     {
         MemoryStream ms = new MemoryStream();
         await e.File.OpenReadStream().CopyToAsync(ms);
         var bytes = ms.ToArray();
         newTovar.Image = bytes;
+    }
+    private void Exit ()
+    {
+        NavigationManager.NavigateTo("/");
     }
     public void Dispose()
     {
